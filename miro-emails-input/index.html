@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+    <title>Miro – Emails Input</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico"/>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com/" crossorigin="anonymous"/>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet"/>
+
+    <style>
+      body {
+        padding: 0;
+        margin: 0;
+        font-family: 'Open Sans', sans-serif;
+        font-size: 1em;
+      }
+
+      .miro_share {
+        max-width: 540px;
+        margin: 32px auto;
+
+        background: #FFF;
+        border-radius: 8px;
+        box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.2);
+      }
+
+      .miro_share__body {
+        padding: 32px 50px 24px;
+        background: #F8F8F7;
+      }
+
+      .miro_share__footer {
+        display: flex;
+        padding: 24px 50px 32px;
+      }
+
+      .miro_share__title {
+        margin-top: 0;
+        margin-bottom: 24px;
+
+        font-size: 20px;
+        font-weight: 400;
+        line-height: 27px;
+      }
+
+      .miro_share__button {
+        padding: 8px 16px;
+        background: #4262FF;
+        border: 0;
+        border-radius: 6px;
+
+        color: #FFF;
+        font-size: 14px;
+        line-height: 24px;
+        text-align: center;
+        cursor: pointer;
+      }
+
+      .miro_share__button + .miro_share__button {
+        margin-left: 16px;
+      }
+
+      .demo_emails-counter {
+        max-width: 440px;
+        margin: 32px auto;
+        color: #c5c4d1;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="miro_share">
+        <div class="miro_share__body">
+          <h1 class="miro_share__title">Share <strong>Board name</strong> with others</h1>
+          <div id="emails-input"></div>
+        </div>
+        <div class="miro_share__footer">
+          <button type="button"
+            class="miro_share__button"
+            id="emails-input-add-random">Add email</button>
+          <button type="button"
+            class="miro_share__button"
+            id="emails-input-get-count">Get emails count</button>
+        </div>
+      </div>
+
+      <div class="demo_emails-counter">
+        <span>Total emails added:</span>
+        <span id="emails-input-counter">0</span>
+      </div>
+    </main>
+
+    <script src="emails-input.min.js" defer type="text/javascript"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var options = {
+          cssNamespace: 'miro',
+          placeholder: 'add more people...'
+        };
+        var inputContainerNode = document.querySelector('#emails-input');
+        var emailsInput = EmailsInput(inputContainerNode, options);
+
+        inputContainerNode.addEventListener('emailsinputchange', function(evt) {
+          document.getElementById('emails-input-counter').innerHTML = evt.detail.length;
+        }, false);
+
+        // Adds random email composed from available names & domains
+        // If generated email already added, then this function will try again (up to 7 retries) or display a failure alert
+        // Based on practical experience it allows to add up to 180 emails before showing an error
+        var retryCount = 0;
+        function addRandomEmail() {
+          var names = ['adam', 'alan', 'alex', 'alona', 'artyom', 'chris', 'duncan', 'fedor', 'ivan', 'isaac', 'jake', 'jane', 'jessica', 'john', 'julia', 'kate', 'max', 'neta', 'nick', 'nicole', 'paul', 'roman', 'sophie', 'valeria', 'zack'];
+          var domains = ['miro.com', 'gmail.com', 'github.com', 'icloud.com', 'mail.com', 'mdn.com', 'yandex.ru', 'outlook.com', 'protonmail.com', 'hotmail.com', 'yahoo.com'];
+          var randomEmail = names[Math.floor(Math.random() * (names.length - 1))] + '@' + domains[Math.floor(Math.random() * (domains.length - 1))];
+          var addedEmails = emailsInput.getValues().map((function(item){ return item.value }));
+          if (addedEmails.indexOf(randomEmail) === -1) {
+            retryCount = 0;
+            addedEmails.push(randomEmail);
+            emailsInput.add(randomEmail);
+          } else if (retryCount >= 11) {
+            var alertMessage = "It appears that random is not on your side today.\n";
+            alertMessage += "We've failed to generate another random email, although you can give it another try\n";
+            // Tiny easter eggs 🙄
+            if (addedEmails.length > 220) {
+              alertMessage = "🎉 Oh, buy a lottery ticket today! I've never got this far. 😉";
+            } else if (addedEmails.length > 200) {
+              alertMessage += "\nStop trying, I've never got more than 220. And you have " + addedEmails.length + " emails by now.";
+            } else if (addedEmails.length > 100) {
+              alertMessage += "\nOn another hand, maybe " + addedEmails.length + " emails is enough?";
+            }
+            alert(alertMessage);
+          } else {
+            retryCount++;
+            addRandomEmail();
+          }
+        }
+
+        // Displays an alert with information on added emails (total and valid)
+        function getEmailsCount() {
+          var emails = emailsInput.getValues();
+          if (!emails.length) {
+            alert("You havn't entered any emails so far!");
+            return;
+          }
+          var validEmailsCount = emails.filter(function(i) { return i.valid; }).length;
+          var alertMessage = 'You have entered ' + emails.length + (emails.length === 1 ? ' email' : ' emails') + ' in total.\n';
+          alertMessage += validEmailsCount + ' of them ' + (validEmailsCount === 1 ? 'is' : 'are') + ' valid.';
+          alert(alertMessage);
+        }
+
+        var addButton = document.getElementById('emails-input-add-random');
+        addButton.addEventListener('click', addRandomEmail, false);
+        var getCountButton = document.getElementById('emails-input-get-count');
+        getCountButton.addEventListener('click', getEmailsCount, false);
+      });
+    </script>
+  </body>
+</html>
